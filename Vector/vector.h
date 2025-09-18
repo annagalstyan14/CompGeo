@@ -37,7 +37,7 @@ class Vector{
     }
 
     Coord_t cross(const Vector& other) const{
-        static_assert(D==2, "Cross product is only defined for 2D vectors");
+        static_assert(D==3, "Cross product is only defined for 3D vectors");
         return components[0] * other.components[1] - components[1] * other.components[0];
     }
 
