@@ -1,24 +1,53 @@
 #ifndef Vector2d_h
 #define Vector2d_h
-
-#include <cmath>
 #include <array>
 #include <type_traits>
+#include <cassert>
+#include <initializer_list>
+#include <cmath>
 #include <iostream>
+#include <stdexcept>
 
 template <size_t D, typename Coord_t>
 class Vector{
-    public:
-    static_assert(D>0, "Dimension must be greater than zero");
+    private:
     static_assert(std::is_arithmetic_v<Coord_t>, "Coordinate type must be arithmetic"); 
-
     std::array<Coord_t, D> components;
-
+    public:
     Vector(){
         components.fill(0);
     }
 
-    Vector(const std::array<Coord_t, D>& comps): components(comps){}
+    Vector(std::initializer_list<Coord_t> lst)
+	{
+		assert(lst.size() == D);
+		size_t i = 0;
+		for (const auto& c : lst)
+			components[i++] = c;
+	}
+
+    const Vector& operator=(const Vector& other){
+        Vector temp(other);
+        std::swap(components, temp.components);
+        return *this;
+    }
+
+    const Vector& operator=(Vector&& other) noexcept{
+        std::swap(components, other.components);
+        return *this;
+    }
+
+    Vector (const Vector&) = default;
+    Vector (Vector&&) noexcept = default;
+    
+    bool operator==(const Vector& other) const{
+
+        return components == other.components;
+    }
+
+    bool operator!=(const Vector& other) const{
+        return !(*this == other);
+    }
 
     Vector operator+(const Vector& other) const{
         Vector result;
@@ -36,18 +65,51 @@ class Vector{
         return result;
     }
 
-    Coord_t cross(const Vector& other) const{
-        static_assert(D==3, "Cross product is only defined for 3D vectors");
-        return components[0] * other.components[1] - components[1] * other.components[0];
+    Vector& operator+=(const Vector& other) {
+        for (size_t i = 0; i < D; ++i) {
+            (*this)[i] += other[i];
+        }
+        return *this;
+    }
+    
+    Vector& operator-=(const Vector& other) {
+        for (size_t i = 0; i < D; ++i) {
+            (*this)[i] -= other[i];
+        }
+        return *this;
     }
 
-    Coord_t dot(const Vector& other) const {
-        Coord_t result = 0;
-        for (size_t i =0; i<D; ++i){
-            result += components[i] * other.components[i];
-        }
-        return result;
+    Coord_t& operator[] (size_t i) {
+        if (i >= D) throw std::out_of_range("Index out of bounds");
+        return components[i];
     }
+    
+    const Coord_t& operator[] (size_t i) const {
+        if (i >= D) throw std::out_of_range("Index out of bounds");
+        return components[i];
+    }
+
+    static auto dot_product(const Vector& vec1, const Vector& vec2)
+	{
+		decltype(vec1.components[0] * vec2.components[0]) res = 0;
+		for (size_t i = 0; i < D; i++)
+		{
+			res += vec1.components[i] * vec2.components[i];
+		}
+
+		return res;
+	}
+
+	static Vector cross_product(const Vector& vec1, const Vector& vec2)
+	{
+		static_assert(D == 3, "cross product supported only for 3d vectors");
+
+		return { 
+			vec1[1] * vec2[2] - vec1[2] * vec2[1], 
+			vec1[2] * vec2[0] - vec1[0] * vec2[2],
+			vec1[0] * vec2[1] - vec1[1] * vec2[0]
+		};
+	}
 
     Vector operator*(Coord_t scalar)const {
         Vector result;
@@ -55,6 +117,23 @@ class Vector{
             result.components[i] = components[i] * scalar;
         }
         return result;
+    }
+
+    Vector& operator*=(Coord_t scalar) {
+        for (size_t i = 0; i < D; ++i) {
+            (*this)[i] *= scalar;
+        }
+        return *this;
+    }
+
+    Coord_t magnitude() const {
+        return std::sqrt(dot_product(*this, *this));
+    }
+    
+    Vector normalized() const {
+        Coord_t mag = magnitude();
+        if (mag == 0) throw std::runtime_error("Cannot normalize zero vector");
+        return *this * (static_cast<Coord_t>(1) / mag);
     }
 
     Coord_t dx() const {
@@ -68,19 +147,21 @@ class Vector{
     }
 
     void set_dx(Coord_t delta_x){
-        static_assert(D<=1, "set_dx requires at least 1 dimension");
+        static_assert(D>=1, "set_dx requires at least 1 dimension");
         components[0] = delta_x;
     }
 
     void set_dy(Coord_t delta_y){
-        static_assert(D<=2, "set_dx requires at least 2 dimensions");
+        static_assert(D>=2, "set_dx requires at least 2 dimensions");
         components[1] = delta_y;
     }
 
-    void move(Coord_t w, Coord_t h, Coord_t a, Coord_t d){
-        static_assert(D ==2, "move is only defined for 2D vectors");
-        components[0] = std::cos(a)*d -w;
-        components[1] = h- std::sin(a)*d;
+    Vector moved(Coord_t w, Coord_t h, Coord_t a, Coord_t d) const {
+        static_assert(D == 2, "moved is only defined for 2D vectors");
+        Vector result;
+        result[0] = std::cos(a) * d - w;
+        result[1] = h - std::sin(a) * d;
+        return result;
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Vector& v){
@@ -92,6 +173,8 @@ class Vector{
         os<< ")";
         return os;
     }
+
+    ~Vector() = default;
 };
 
 #endif
