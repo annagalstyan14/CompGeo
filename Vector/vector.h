@@ -11,20 +11,19 @@
 template <size_t D, typename Coord_t>
 class Vector{
     private:
-    static_assert(std::is_arithmetic_v<Coord_t>, "Coordinate type must be arithmetic"); 
+    static_assert(std::is_arithmetic<Coord_t>::value, "Coordinate type must be arithmetic");
     std::array<Coord_t, D> components;
     public:
     Vector(){
         components.fill(0);
     }
 
-    Vector(std::initializer_list<Coord_t> lst)
-	{
-		assert(lst.size() == D);
-		size_t i = 0;
-		for (const auto& c : lst)
-			components[i++] = c;
-	}
+    Vector(std::initializer_list<Coord_t> lst) {
+        if (lst.size() != D) throw std::invalid_argument("Initializer list size must match dimension");
+        size_t i = 0;
+        for (const auto& c : lst)
+            components[i++] = c;
+    }
 
     const Vector& operator=(const Vector& other){
         Vector temp(other);
@@ -100,6 +99,11 @@ class Vector{
 		return res;
 	}
 
+    Coord_t cross_2d(const Vector& other) const {
+        static_assert(D == 2, "cross_2d is only defined for 2D vectors");
+        return (*this)[0] * other[1] - (*this)[1] * other[0];
+    }
+
 	static Vector cross_product(const Vector& vec1, const Vector& vec2)
 	{
 		static_assert(D == 3, "cross product supported only for 3d vectors");
@@ -124,6 +128,10 @@ class Vector{
             (*this)[i] *= scalar;
         }
         return *this;
+    }
+
+    friend Vector operator*(Coord_t scalar, const Vector& vec) {
+        return vec * scalar;
     }
 
     Coord_t magnitude() const {
