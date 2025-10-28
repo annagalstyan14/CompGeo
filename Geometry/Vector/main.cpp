@@ -1,4 +1,4 @@
-#include "vector.h"
+#include "Vector_new.h"
 #include <iostream>
 #include <cmath>
 
@@ -16,9 +16,20 @@ int main() {
     std::cout << "Delta x of v1: " << v1.dx() << std::endl;
     std::cout << "Delta y of v1: " << v1.dy() << std::endl;
 
-    float w = 1.0f, h = 2.0f, a = M_PI / 4, d = 5.0f;
-    v1 = v1.moved(w, h, a, d);
-    std::cout << "After moving v1 (w=" << w << ", h=" << h << ", a=" << a << ", d=" << d << "): " << v1 << std::endl;
+    std::cout << "\n=== MOVED() VERIFICATION TESTS ===\n\n";
+
+    // Test 1
+    { Vector<2, float> v({3.0f,4.0f}); v = v.moved(0,0,0,5);
+      std::cout << "Test 1 – Expected: (8, 4)\n  Actual: " << v << "\n\n"; }
+
+    // Test 2
+    { Vector<2, float> v({1.0f,1.0f}); v = v.moved(0,0,M_PI/2,3);
+      std::cout << "Test 2 – Expected: (1, 4)\n  Actual: " << v << "\n\n"; }
+
+    // Test 3
+    { Vector<2, float> v({0.0f,0.0f}); const float d = std::sqrt(8.0f);
+      v = v.moved(1,1,M_PI/4,d);
+      std::cout << "Test 3 – Expected: (1, 1)\n  Actual: " << v << "\n\n"; }
 
     Vector<2, float> v3 = v1;
     v3 += v2;
@@ -44,27 +55,19 @@ int main() {
     std::cout << "3D Vector v5: " << v5 << std::endl;
     std::cout << "Cross product (3D): " << Vector<3, float>::cross_product(v4, v5) << std::endl;
 
-    try {
-        Vector<2, float> v_invalid({1.0f});
-        std::cout << "Error: Should not reach here" << std::endl;
-    } catch (const std::exception& e) {
-        std::cout << "Caught expected error: " << e.what() << std::endl;
-    }
+    std::cout << "\n=== SAFETY & ERROR HANDLING TESTS ===\n";
 
-    try {
-        v1[2];
-        std::cout << "Error: Should not reach here" << std::endl;
-    } catch (const std::out_of_range& e) {
-        std::cout << "Caught expected error: " << e.what() << std::endl;
-    }
+    std::cout << "[TEST] Invalid initializer: ";
+    try { Vector<2, float> v({1.0f}); std::cout << "FAIL\n"; }
+    catch (const std::exception& e) { std::cout << "PASS (" << e.what() << ")\n"; }
 
-    try {
-        Vector<2, float> zero({0.0f, 0.0f});
-        zero.normalized();
-        std::cout << "Error: Should not reach here" << std::endl;
-    } catch (const std::runtime_error& e) {
-        std::cout << "Caught expected error: " << e.what() << std::endl;
-    }
+    std::cout << "[TEST] Out-of-bounds [2]: ";
+    try { v1[2]; std::cout << "FAIL\n"; }
+    catch (const std::out_of_range& e) { std::cout << "PASS (" << e.what() << ")\n"; }
+
+    std::cout << "[TEST] Normalize zero: ";
+    try { Vector<2, float>({0,0}).normalized(); std::cout << "FAIL\n"; }
+    catch (const std::runtime_error& e) { std::cout << "PASS (" << e.what() << ")\n"; }
 
     return 0;
 }
