@@ -7,14 +7,8 @@
 #include <cmath>
 #include <algorithm>
 
-template <size_t D, typename T>
-class Polygon;      // still only forward-declared
-
-template <size_t D, typename T>
-struct LineSegment {
-    Point<D, T> a, b;
-    LineSegment(const Point<D, T>& a_, const Point<D, T>& b_) : a(a_), b(b_) {}
-};
+template <size_t D, typename T> struct LineSegment;
+template <size_t D, typename T> class Polygon;
 
 template <size_t D, typename T>
 class Ray {
@@ -31,9 +25,9 @@ public:
     Vector<D, T> norm_dir() const;
     T length() const;
 
-    std::optional<T> intersect(const Ray<D, T>& other) const;
     std::optional<T> intersect(const LineSegment<D, T>& seg) const;
-    std::optional<T> intersect(const Polygon<D, T>& poly) const;  // stub
+    std::optional<T> intersect(const Polygon<D, T>& poly) const;    
+    std::optional<T> intersect(const Ray<D, T>& other) const;
 
     friend std::ostream& operator<<(std::ostream& os, const Ray& r) {
         return os << "Ray[origin: " << r.origin << ", dir: " << r.direction << "]";

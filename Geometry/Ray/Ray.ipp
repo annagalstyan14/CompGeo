@@ -2,6 +2,8 @@
 #include <stdexcept>
 #include <limits>
 #include <optional>
+#include "LineSegment.h"
+#include "../Polygon/Polygon.h"
 
 template <size_t D, typename T>
 Ray<D, T>::Ray(const Point<D, T>& orig, const Vector<D, T>& dir)
@@ -23,79 +25,88 @@ T Ray<D, T>::length() const {
 }
 
 template <size_t D, typename T>
-std::optional<T> Ray<D, T>::intersect(const Ray<D, T>& other) const {
-    Vector<D, T> p = other.origin - origin;
+std::optional<T> Ray<D, T>::intersect(const Ray<D, T>& other) const
+{
+    Vector<D, T> p = other.origin - origin;   // vector from this origin to other origin
     Vector<D, T> d1 = direction;
     Vector<D, T> d2 = other.direction;
 
-    // Find two axes with largest direction components
-    size_t i = 0, j = 1;
-    T best = 0;
-    for (size_t a = 0; a < D; ++a) {
-        for (size_t b = a + 1; b < D; ++b) {
-            T m = std::abs(d1[a]) + std::abs(d1[b]);
-            if (m > best) {
-                best = m;
-                i = a;
-                j = b;
-            }
-        }
+    if constexpr (D == 2) {
+        T denom = d1[0] * d2[1] - d1[1] * d2[0];
+        if (std::abs(denom) < static_cast<T>(1e-10)) return std::nullopt; // parallel / collinear
+
+        T t = (p[0] * d2[1] - p[1] * d2[0]) / denom;
+        T s = (p[0] * d1[1] - p[1] * d1[0]) / denom;
+
+        if (t >= 0 && s >= 0) return t;
+        return std::nullopt;
     }
 
-    T denom = d1[i] * d2[j] - d1[j] * d2[i];
-    if (std::abs(denom) < static_cast<T>(1e-10)) {
-        return std::nullopt;  // parallel
-    }
+    if constexpr (D == 3) {
+        auto cross = Vector<D,T>::cross_product(d1, d2);
+        T denom = cross.squared_magnitude();
+        if (denom < static_cast<T>(1e-10)) return std::nullopt;
 
-    T t = (p[i] * d2[j] - p[j] * d2[i]) / denom;
-    T s = (p[i] * d1[j] - p[j] * d1[i]) / denom;
+        T t = Vector<D,T>::dot_product( Vector<D,T>::cross_product(p, d2), cross ) / denom;
+        T s = Vector<D,T>::dot_product( Vector<D,T>::cross_product(p, d1), cross ) / denom;
 
-    if (t >= 0 && s >= 0) {
-        return t;
+        if (t >= 0 && s >= 0) return t;
+        return std::nullopt;
     }
-    return std::nullopt;
 }
 
 template <size_t D, typename T>
-std::optional<T> Ray<D, T>::intersect(const LineSegment<D, T>& seg) const {
+std::optional<T> Ray<D, T>::intersect(const LineSegment<D, T>& seg) const
+{
     Vector<D, T> ab = seg.b - seg.a;
     T ab2 = ab.squared_magnitude();
     if (ab2 == 0) return std::nullopt;
 
     Vector<D, T> ap = origin - seg.a;
-    T proj = Vector<D, T>::dot_product(ap, ab) / ab2;
 
-    // Special case: ray origin lies on the segment
+    T proj = Vector<D,T>::dot_product(ap, ab) / ab2;
+
     if (proj >= 0 && proj <= 1) {
         if constexpr (D == 2) {
-            T cross = direction[0] * ab[1] - direction[1] * ab[0];
-            if (std::abs(cross) < static_cast<T>(1e-6)) {
-                return T(0);  // collinear and starts on segment
-            }
+            T cross = direction[0]*ab[1] - direction[1]*ab[0];
+            if (std::abs(cross) < static_cast<T>(1e-6)) return T(0);
         } else if constexpr (D == 3) {
-            auto cross = Vector<D, T>::cross_product(direction, ab);
-            if (cross.squared_magnitude() < static_cast<T>(1e-12)) {
-                return T(0);
-            }
+            auto cr = Vector<D,T>::cross_product(direction, ab);
+            if (cr.squared_magnitude() < static_cast<T>(1e-12)) return T(0);
         }
     }
 
-    // General case: intersect ray with infinite line, then clamp
-    Ray<D, T> line(seg.a, ab);
-    auto opt = intersect(line);
+    Ray<D,T> infLine(seg.a, ab);
+    auto opt = intersect(infLine);
     if (!opt) return std::nullopt;
 
     T t = *opt;
-    Point<D, T> hit = at(t);
-    Vector<D, T> hit_to_a = hit - seg.a;
-    T proj_hit = Vector<D, T>::dot_product(hit_to_a, ab) / ab2;
+    Point<D,T> hit = at(t);
+    Vector<D,T> hit2a = hit - seg.a;
+    T projHit = Vector<D,T>::dot_product(hit2a, ab) / ab2;
 
-    if (proj_hit >= 0 && proj_hit <= 1) {
-        return t;
-    }
-
+    if (projHit >= 0 && projHit <= 1) return t;
     return std::nullopt;
 }
 
+template <size_t D, typename T>
+std::optional<T> Ray<D, T>::intersect(const Polygon<D, T>& poly) const
+{
+    static_assert(D == 2, "Ray-Polygon intersection is 2-D only");
+
+    T t_min = std::numeric_limits<T>::max();
+    bool hit = false;
+
+    for (size_t i = 0; i < poly.size(); ++i) {
+        size_t j = (i + 1) % poly.size();
+        LineSegment<D, T> edge(poly[i], poly[j]);
+        auto opt = intersect(edge);
+        if (opt && *opt >= 0) {
+            if (*opt < t_min) t_min = *opt;
+            hit = true;
+        }
+    }
+    return hit ? std::optional<T>(t_min) : std::nullopt;
+}
+
 template class Ray<2, float>;
-template class Ray<3, float>;

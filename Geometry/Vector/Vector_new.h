@@ -54,14 +54,16 @@ public:
 
     // operator<< defined inline
     friend std::ostream& operator<<(std::ostream& os, const Vector& v)
-    {
-        os << '(';
-        for (std::size_t i = 0; i < D; ++i) {
-            os << v[i];
-            if (i + 1 < D) os << ", ";
-        }
-        os << ')';
-        return os;
+        {
+    os << '(';
+    for (std::size_t i = 0; i < D; ++i) {
+        Coord_t val = v[i];
+        if (val == 0) val = 0;  // Clamp -0 → +0
+        os << val;
+        if (i + 1 < D) os << ", ";
+    }
+    os << ')';
+    return os;
     }
 
     Coord_t squared_magnitude() const {
@@ -72,5 +74,5 @@ public:
     }
 };
 
-#include "Vector.ipp"  // Only other member definitions
+#include "Vector.ipp"
 #endif

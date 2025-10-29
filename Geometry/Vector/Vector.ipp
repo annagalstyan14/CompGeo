@@ -2,7 +2,6 @@
 #include <stdexcept>
 #include <cmath>
 
-// --------------------- constructors ---------------------
 template <size_t D, typename Coord_t>
 Vector<D, Coord_t>::Vector(std::initializer_list<Coord_t> lst)
 {
@@ -12,7 +11,6 @@ Vector<D, Coord_t>::Vector(std::initializer_list<Coord_t> lst)
     for (auto v : lst) components[i++] = v;
 }
 
-// --------------------- comparison ---------------------
 template <size_t D, typename Coord_t>
 bool Vector<D, Coord_t>::operator==(const Vector& other) const
 {
@@ -25,7 +23,6 @@ bool Vector<D, Coord_t>::operator!=(const Vector& other) const
     return !(*this == other);
 }
 
-// --------------------- arithmetic ---------------------
 template <size_t D, typename Coord_t>
 Vector<D, Coord_t> Vector<D, Coord_t>::operator+(const Vector& other) const
 {
@@ -73,7 +70,6 @@ Vector<D, Coord_t>& Vector<D, Coord_t>::operator*=(Coord_t s)
     return *this;
 }
 
-// --------------------- element access ---------------------
 template <size_t D, typename Coord_t>
 Coord_t& Vector<D, Coord_t>::operator[](std::size_t i)
 {
@@ -88,7 +84,6 @@ const Coord_t& Vector<D, Coord_t>::operator[](std::size_t i) const
     return components[i];
 }
 
-// --------------------- math functions ---------------------
 template <size_t D, typename Coord_t>
 Coord_t Vector<D, Coord_t>::dot_product(const Vector& a, const Vector& b)
 {
@@ -131,7 +126,6 @@ Vector<D, Coord_t> Vector<D, Coord_t>::normalized() const
     return *this * (Coord_t(1) / m);
 }
 
-// --------------------- 2-D helpers ---------------------
 template <size_t D, typename Coord_t>
 Coord_t Vector<D, Coord_t>::dx() const
 {
