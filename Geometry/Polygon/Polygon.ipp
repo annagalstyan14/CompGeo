@@ -12,6 +12,16 @@ Polygon<D, T>::Polygon(std::initializer_list<Point<2, T>> pts) : vertices(pts) {
 }
 
 template <size_t D, typename T>
+bool Polygon<D, T>::operator==(const Polygon& other) const {
+    return vertices == other.vertices;
+}
+
+template <size_t D, typename T>
+bool Polygon<D, T>::operator!=(const Polygon& other) const {
+    return !(*this == other);
+}
+
+template <size_t D, typename T>
 const Point<2, T>& Polygon<D, T>::operator[](size_t i) const {
     if (i >= vertices.size()) throw std::out_of_range("Polygon index out of range");
     return vertices[i];
@@ -25,6 +35,7 @@ Point<2, T>& Polygon<D, T>::operator[](size_t i) {
 
 template <size_t D, typename T>
 T Polygon<D, T>::area() const {
+    if (vertices.size() < 3) return 0;
     T sum = 0;
     for (size_t i = 0; i < vertices.size(); ++i) {
         size_t j = (i + 1) % vertices.size();
@@ -49,18 +60,16 @@ bool Polygon<D, T>::is_convex() const {
 
 template <size_t D, typename T>
 bool Polygon<D, T>::isInside(const Point<2, T>& p) const {
-    int count = 0;
+    bool inside = false;
     for (size_t i = 0; i < vertices.size(); ++i) {
         size_t j = (i + 1) % vertices.size();
-        if ((vertices[i][1] <= p[1] && vertices[j][1] > p[1]) ||
-            (vertices[i][1] > p[1] && vertices[j][1] <= p[1])) {
-            T x = vertices[i][0] + (p[1] - vertices[i][1]) *
-                  (vertices[j][0] - vertices[i][0]) /
-                  (vertices[j][1] - vertices[i][1] + 1e-10);
-            if (x > p[0]) ++count;
+        if ((vertices[i][1] > p[1]) != (vertices[j][1] > p[1]) &&
+            (p[0] < vertices[i][0] + (vertices[j][0] - vertices[i][0]) *
+             (p[1] - vertices[i][1]) / (vertices[j][1] - vertices[i][1] + 1e-10))) {
+            inside = !inside;
         }
     }
-    return count % 2 == 1;
+    return inside;
 }
 
 template <size_t D, typename T>
@@ -70,14 +79,22 @@ Vector<2, T> Polygon<D, T>::normal(size_t edge_index) const {
     Vector<2, T> edge = vertices[j] - vertices[i];
     Vector<2, T> n{-edge[1], edge[0]};
 
-    Point<2, T> ref = vertices[0];
-    Vector<2, T> to_ref = ref - vertices[i];
-    T dot = n[0] * to_ref[0] + n[1] * to_ref[1];
+    Point<2, T> centroid{0, 0};
+    for (const auto& v : vertices) {
+        centroid[0] += v[0];
+        centroid[1] += v[1];
+    }
+    centroid[0] /= vertices.size();
+    centroid[1] /= vertices.size();
+
+    Vector<2, T> to_centroid = centroid - vertices[i];
+    T dot = n[0] * to_centroid[0] + n[1] * to_centroid[1];
 
     if (dot < 0) {
         n[0] = -n[0];
         n[1] = -n[1];
     }
+
     return n.normalized();
 }
 
